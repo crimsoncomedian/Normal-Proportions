@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Normal Proportions</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap" rel="stylesheet">
+<style>
+/* Layout: question and shaded curve stacked on the left, the z-table on the right; stacks on phones. */
+:root{
+  --bg:#E8EEF3; --surface:#FFFFFF; --ink:#13222D; --muted:#566772; --line:#C8D4DC; --head:#EEF3F7;
+  --accent:#0B6A8A; --accent-ink:#FFFFFF; --accent-soft:#D5EAF2;
+  --hv:#E3EFF5; --hl-soft:#FFF0B3; --hl:#FFD23F; --hl-ink:#13222D;
+  --good:#17753F; --good-bg:#DFF2E6; --bad:#B3321F; --bad-bg:#FBE3DE; --info:#0B6A8A; --info-bg:#E3EFF5;
+  --display:'Newsreader',Georgia,serif;
+  --body:'Instrument Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1920; --surface:#15252F; --ink:#E4EDF2; --muted:#93A7B4; --line:#2B404D; --head:#1B2F3B;
+    --accent:#5BC0E0; --accent-ink:#07202B; --accent-soft:#1F4151;
+    --hv:#1F3A48; --hl-soft:#4A4118; --hl:#86690F; --hl-ink:#FFF8DC;
+    --good:#5CD08A; --good-bg:#173B27; --bad:#FF8C7A; --bad-bg:#432019; --info:#5BC0E0; --info-bg:#1F3A48;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1920; --surface:#15252F; --ink:#E4EDF2; --muted:#93A7B4; --line:#2B404D; --head:#1B2F3B;
+  --accent:#5BC0E0; --accent-ink:#07202B; --accent-soft:#1F4151;
+  --hv:#1F3A48; --hl-soft:#4A4118; --hl:#86690F; --hl-ink:#FFF8DC;
+  --good:#5CD08A; --good-bg:#173B27; --bad:#FF8C7A; --bad-bg:#432019; --info:#5BC0E0; --info-bg:#1F3A48;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--body); font-size:16px; line-height:1.45;
+  padding-block:20px 28px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap{max-width:1180px; margin:0 auto}
+header{display:flex; align-items:baseline; justify-content:space-between; gap:6px 24px; flex-wrap:wrap; margin-bottom:12px}
+h1{font-family:var(--display); font-weight:600; font-size:clamp(26px,3.6vw,34px); line-height:1.1; margin:0; text-wrap:balance}
+.lede{margin:0; color:var(--muted); font-size:15px}
+.bar{display:flex; justify-content:space-between; align-items:center; gap:8px 14px; flex-wrap:wrap; margin-bottom:12px}
+.groups{display:flex; gap:8px 12px; flex-wrap:wrap}
+.seg{display:inline-flex; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:3px; gap:3px; flex-wrap:wrap}
+.opt{border:0; background:transparent; color:var(--muted); font-weight:600; font-size:13px; padding:6px 12px; border-radius:7px}
+.opt[aria-pressed="true"]{background:var(--accent); color:var(--accent-ink)}
+.opt[aria-pressed="false"]:hover{color:var(--ink)}
+.scoreline{font-size:13px; color:var(--muted); display:flex; gap:10px; align-items:center}
+.scoreline b{color:var(--ink); font-variant-numeric:tabular-nums}
+.linkish{background:none; border:0; color:var(--muted); text-decoration:underline; padding:2px; font-size:13px}
+
+.layout{display:grid; gap:14px; grid-template-columns:minmax(0,1fr); grid-template-areas:"quiz" "curve" "table"}
+@media (min-width:900px){
+  .layout{grid-template-columns:minmax(0,1fr) minmax(0,1fr); grid-template-areas:"quiz table" "curve table"; grid-template-rows:auto 1fr; align-items:start}
+}
+.quiz{grid-area:quiz} .curvecard{grid-area:curve} .tablecard{grid-area:table}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:12px; min-width:0}
+.quiz{padding:14px 16px}
+.curvecard{padding:10px 12px}
+.qmeta{display:flex; justify-content:space-between; gap:12px; align-items:baseline; color:var(--muted); font-size:13px}
+.qmeta .label{text-transform:uppercase; letter-spacing:.08em; font-weight:600; font-size:12px}
+.tag{font-weight:600; color:var(--accent)}
+.story{font-size:17px; margin:6px 0 6px; text-wrap:pretty}
+.story b{font-family:var(--mono); font-weight:700; font-size:.92em; white-space:nowrap}
+.ask{font-size:19px; font-weight:600; margin:0 0 10px; text-wrap:balance}
+.ask b{font-family:var(--mono); white-space:nowrap}
+.answer{display:flex; gap:8px; flex-wrap:wrap; align-items:stretch}
+.answer input{
+  flex:1 1 120px; min-width:0; font:500 20px var(--mono); padding:7px 12px; border-radius:8px;
+  border:1.5px solid var(--line); background:var(--surface); color:var(--ink);
+}
+.answer input:read-only{background:var(--head)}
+button{font:inherit; cursor:pointer}
+.btn{font-weight:600; padding:8px 16px; border-radius:8px; border:1.5px solid var(--accent); background:var(--accent); color:var(--accent-ink)}
+.btn:hover{filter:brightness(1.08)}
+.ghost{font-weight:500; font-size:14px; padding:6px 12px; border-radius:8px; border:1.5px solid var(--line); background:transparent; color:var(--ink)}
+.ghost:hover:not(:disabled){border-color:var(--accent); color:var(--accent)}
+.ghost:disabled{opacity:.45; cursor:default}
+:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
+.fb{margin-top:10px; padding:8px 12px; border-radius:8px; min-height:3.4em; font-size:15px; background:var(--head); color:var(--muted)}
+.fb.good{background:var(--good-bg); color:var(--good)}
+.fb.bad{background:var(--bad-bg); color:var(--bad)}
+.fb.info{background:var(--info-bg); color:var(--info)}
+.num{font-family:var(--mono)}
+
+.curve{width:100%; height:auto; display:block}
+.curve .axis{stroke:var(--muted); stroke-width:1.5}
+.curve .tick{stroke:var(--muted); stroke-width:1.5}
+.curve .tlabel{fill:var(--muted); font:15px var(--mono); text-anchor:middle}
+.curve .mlabel{fill:var(--ink); font:700 15px var(--mono); text-anchor:middle}
+.curve .line{fill:none; stroke:var(--ink); stroke-width:2.2}
+.curve .shade{fill:var(--accent); fill-opacity:.38}
+.curve .bline{stroke:var(--accent); stroke-width:2.2; stroke-dasharray:6 5}
+.curve .blabel{fill:var(--ink); font:700 16px var(--mono)}
+.curve .plabel{fill:var(--ink); font:700 18px var(--mono); text-anchor:middle}
+.caption{font-size:12.5px; color:var(--muted); margin:2px 4px 0}
+
+.thead{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; padding:12px 14px; border-bottom:1px solid var(--line)}
+.thead h2{font-family:var(--display); font-weight:600; font-size:18px; margin:0}
+.tabs{display:inline-flex; background:var(--head); border:1px solid var(--line); border-radius:10px; padding:3px; gap:3px}
+.tab{border:0; background:transparent; color:var(--muted); font-weight:600; font-size:13px; padding:6px 12px; border-radius:7px}
+.tab[aria-selected="true"]{background:var(--accent); color:var(--accent-ink)}
+.tab:not([aria-selected="true"]):hover{color:var(--ink)}
+.tablewrap{position:relative; overflow:auto; max-height:min(64vh,560px); -webkit-overflow-scrolling:touch}
+table{border-collapse:separate; border-spacing:0; width:100%; font-family:var(--mono); font-size:14px; font-variant-numeric:tabular-nums}
+th,td{padding:6px 5px; text-align:center; border-right:1px solid var(--line); border-bottom:1px solid var(--line); min-width:52px; background:var(--surface)}
+thead th{position:sticky; top:0; z-index:2; background:var(--head); font-weight:700; color:var(--accent)}
+tbody th{position:sticky; left:0; z-index:1; background:var(--head); font-weight:700; min-width:60px; color:var(--accent)}
+thead th.corner{left:0; z-index:3}
+td{cursor:pointer}
+td.hv-row,td.hv-col,th.hv-row,th.hv-col{background:var(--hv)}
+td.mk-row,td.mk-col{background:var(--hl-soft)}
+th.mk-row,th.mk-col{background:var(--hl); color:var(--hl-ink)}
+td.mk-cell{background:var(--hl); color:var(--hl-ink); font-weight:700}
+td.ans{outline:3px solid var(--accent); outline-offset:-3px}
+.tnote{padding:8px 14px; font-size:12.5px; color:var(--muted); border-top:1px solid var(--line)}
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto !important; transition:none !important}}
+</style>
+</head>
+<body>
+
+<main class="wrap">
+  <header>
+    <h1>Normal Proportions</h1>
+    <p class="lede">Find the proportion of the data to the left of a value, to the right, or between two values.</p>
+  </header>
+
+  <div class="bar">
+    <div class="groups">
+      <div class="seg" role="group" aria-label="Question type">
+        <button class="opt" type="button" data-kind="mixed" aria-pressed="true">Mixed</button>
+        <button class="opt" type="button" data-kind="left" aria-pressed="false">Left</button>
+        <button class="opt" type="button" data-kind="right" aria-pressed="false">Right</button>
+        <button class="opt" type="button" data-kind="between" aria-pressed="false">Between</button>
+      </div>
+      <div class="seg" role="group" aria-label="Decimal places in z">
+        <button class="opt" type="button" data-level="tenths" aria-pressed="true">z to tenths</button>
+        <button class="opt" type="button" data-level="hundredths" aria-pressed="false">z to hundredths</button>
+      </div>
+    </div>
+    <div class="scoreline"><span id="score">No questions finished yet</span><button class="linkish" id="reset" type="button">Reset</button></div>
+  </div>
+
+  <div class="layout">
+    <section class="card quiz" aria-labelledby="qlabel">
+      <div class="qmeta"><span class="label" id="qlabel">Question <span id="qnum">1</span></span><span class="tag" id="tag"></span></div>
+      <p class="story" id="story"></p>
+      <p class="ask" id="ask"></p>
+      <form class="answer" id="ansform" autocomplete="off">
+        <input id="ans" type="text" inputmode="decimal" placeholder=".0000" aria-label="Proportion, four decimal places">
+        <button class="btn" id="primary" type="submit">Check answer</button>
+        <button class="ghost" id="hintBtn" type="button">Hint</button>
+        <button class="ghost" id="revealBtn" type="button">Show answer</button>
+      </form>
+      <div class="fb" id="fb" role="status" aria-live="polite"></div>
+    </section>
+
+    <section class="card curvecard" aria-label="Normal curve">
+      <svg class="curve" id="curve" viewBox="0 0 700 190" role="img" aria-label="Normal curve with the region to find shaded"></svg>
+      <p class="caption">The shaded region is the proportion you need. The axis shows the mean and each standard deviation.</p>
+    </section>
+
+    <section class="card tablecard" aria-label="Standard normal table">
+      <div class="thead">
+        <h2>Standard Normal Table</h2>
+        <div class="tabs" role="tablist" aria-label="Sign of z">
+          <button class="tab" role="tab" id="tabNeg" aria-selected="true" aria-controls="tbl" type="button">Negative z</button>
+          <button class="tab" role="tab" id="tabPos" aria-selected="false" aria-controls="tbl" type="button">Positive z</button>
+        </div>
+      </div>
+      <div class="tablewrap" id="tablewrap" role="tabpanel" aria-labelledby="tabNeg">
+        <table id="tbl"></table>
+      </div>
+      <div class="tnote">Each entry is the proportion of the curve to the left of z. Hover to follow a row and column. Click a cell to mark it.</div>
+    </section>
+  </div>
+</main>
+
+<script>
+(function(){
+  var MINUS = '−';
+  var TOL = 0.0002;
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var CTX = [
+    {intro:'Scores on a unit test', be:'are', unit:'points', what:'scores', mu:[60,90], sd:[4,5,6,8,10,12]},
+    {intro:'Heights of adult women', be:'are', unit:'inches', what:'heights', mu:[62,66], sd:[2,2.5,3]},
+    {intro:'Daily commute times', be:'are', unit:'minutes', what:'commute times', mu:[20,45], sd:[3,4,5,6]},
+    {intro:'Fill weights of cereal boxes', be:'are', unit:'ounces', what:'fill weights', mu:[12,18], sd:[0.2,0.3,0.4,0.5]},
+    {intro:'Battery life of a phone', be:'is', unit:'hours', what:'battery lives', mu:[10,14], sd:[1,1.5,2]},
+    {intro:'Resting heart rates', be:'are', unit:'beats per minute', what:'heart rates', mu:[66,76], sd:[4,5,6,8]},
+    {intro:'Times to run a mile in gym class', be:'are', unit:'minutes', what:'mile times', mu:[8,11], sd:[0.5,1,1.5]}
+  ];
+  function $(id){ return document.getElementById(id); }
+  function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+  function rnd(a,b){ return a + Math.floor(Math.random()*(b-a+1)); }
+  function r2(x){ return Math.round(x*100)/100; }
+  function r4(x){ return Math.round(x*10000)/10000; }
+  function num(x){ return String(parseFloat(r2(x).toFixed(2))); }
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+  function pdf(z){ return Math.exp(-z*z/2)/Math.sqrt(2*Math.PI); }
+  function phi(x){
+    var s = x, t = x, n = 0;
+    while (Math.abs(t) > 1e-17 && n < 300){ n++; t *= x*x/(2*n+1); s += t; }
+    return 0.5 + Math.exp(-x*x/2)/Math.sqrt(2*Math.PI)*s;
+  }
+  function entry(sign, r, c){ return Math.round(phi(sign*(r*10+c)/100)*10000)/10000; }
+  function fmt(p){ return p.toFixed(4).replace(/^0/, ''); }
+  function rowLabel(sign, r){ return (sign < 0 ? MINUS : '') + (r/10).toFixed(1); }
+
+  var tbl = $('tbl'), wrap = $('tablewrap'), fb = $('fb'), input = $('ans'), primary = $('primary');
+  var hintBtn = $('hintBtn'), revealBtn = $('revealBtn');
+  var view = -1, q = null, hover = null, pin = null, marks = [], ansMark = false;
+  var kindMode = 'mixed', level = 'tenths', bag = [];
+  var status = 'open', attempts = 0, hintLevel = 0;
+  var n = 0, first = 0, streak = 0, qnum = 0;
+
+  /* ---------- z-table ---------- */
+  function buildTable(sign){
+    var h = '<thead><tr><th class="corner" scope="col">z</th>', c, r, i;
+    for (c = 0; c < 10; c++) h += '<th scope="col" data-c="' + c + '">.0' + c + '</th>';
+    h += '</tr></thead><tbody>';
+    var order = [];
+    for (r = 0; r <= 34; r++) order.push(r);
+    if (sign < 0) order.reverse();
+    for (i = 0; i < order.length; i++){
+      r = order[i];
+      h += '<tr><th scope="row" data-r="' + r + '">' + rowLabel(sign, r) + '</th>';
+      for (c = 0; c < 10; c++) h += '<td data-r="' + r + '" data-c="' + c + '">' + fmt(entry(sign, r, c)) + '</td>';
+      h += '</tr>';
+    }
+    tbl.innerHTML = h + '</tbody>';
+  }
+  function tag(sel, cls){ tbl.querySelectorAll(sel).forEach(function(e){ e.classList.add(cls); }); }
+  function rowSel(r){ return 'th[data-r="' + r + '"],td[data-r="' + r + '"]'; }
+  function colSel(c){ return 'th[data-c="' + c + '"],td[data-c="' + c + '"]'; }
+  function paint(){
+    tbl.querySelectorAll('.hv-row,.hv-col,.mk-row,.mk-col,.mk-cell,.ans').forEach(function(e){
+      e.classList.remove('hv-row','hv-col','mk-row','mk-col','mk-cell','ans');
+    });
+    if (hover){ tag(rowSel(hover.r), 'hv-row'); tag(colSel(hover.c), 'hv-col'); }
+    var all = marks.slice();
+    if (pin) all.push(pin);
+    all.forEach(function(m){
+      if (m.sign !== view) return;
+      tag(rowSel(m.r), 'mk-row'); tag(colSel(m.c), 'mk-col');
+      var cell = tbl.querySelector('td[data-r="' + m.r + '"][data-c="' + m.c + '"]');
+      if (cell){ cell.classList.add('mk-cell'); if (ansMark && m !== pin) cell.classList.add('ans'); }
+    });
+  }
+  function scrollToMark(m){
+    if (!m || m.sign !== view) return;
+    var el = tbl.querySelector('td[data-r="' + m.r + '"][data-c="' + m.c + '"]');
+    if (!el) return;
+    var w = wrap.getBoundingClientRect(), b = el.getBoundingClientRect();
+    wrap.scrollTo({
+      top: wrap.scrollTop + (b.top - w.top) - wrap.clientHeight/2 + b.height/2,
+      left: wrap.scrollLeft + (b.left - w.left) - wrap.clientWidth/2 + b.width/2,
+      behavior: reduce ? 'auto' : 'smooth'
+    });
+  }
+  function setView(sign){
+    view = sign;
+    $('tabNeg').setAttribute('aria-selected', sign < 0 ? 'true' : 'false');
+    $('tabPos').setAttribute('aria-selected', sign > 0 ? 'true' : 'false');
+    $('tabNeg').tabIndex = sign < 0 ? 0 : -1;
+    $('tabPos').tabIndex = sign > 0 ? 0 : -1;
+    wrap.setAttribute('aria-labelledby', sign < 0 ? 'tabNeg' : 'tabPos');
+    hover = null;
+    buildTable(sign);
+    paint();
+  }
+  tbl.addEventListener('mouseover', function(e){
+    var td = e.target.closest ? e.target.closest('td') : null;
+    if (!td) return;
+    hover = {r: +td.dataset.r, c: +td.dataset.c};
+    paint();
+  });
+  tbl.addEventListener('mouseleave', function(){ hover = null; paint(); });
+  tbl.addEventListener('click', function(e){
+    var td = e.target.closest ? e.target.closest('td') : null;
+    if (!td) return;
+    var r = +td.dataset.r, c = +td.dataset.c;
+    if (pin && pin.sign === view && pin.r === r && pin.c === c) pin = null;
+    else pin = {sign: view, r: r, c: c};
+    paint();
+  });
+  $('tabNeg').addEventListener('click', function(){ setView(-1); });
+  $('tabPos').addEventListener('click', function(){ setView(1); });
+  [$('tabNeg'), $('tabPos')].forEach(function(t){
+    t.addEventListener('keydown', function(e){
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight'){
+        var s = view < 0 ? 1 : -1;
+        setView(s);
+        (s < 0 ? $('tabNeg') : $('tabPos')).focus();
+      }
+    });
+  });
+
+  /* ---------- curve ---------- */
+  function X(z){ return 350 + z * 100; }
+  function Y(z){ return 150 - pdf(z) * 325; }
+  function drawCurve(done){
+    var lo = q.kind === 'left' ? -3.5 : q.zs[0].z;
+    var hi = q.kind === 'right' ? 3.5 : q.zs[q.zs.length - 1].z;
+    var pts = [], sh = [], z, i, s = '';
+    for (i = 0; i <= 140; i++){ z = -3.5 + i * 0.05; pts.push(X(z).toFixed(1) + ',' + Y(z).toFixed(1)); }
+    sh.push(X(lo).toFixed(1) + ',150');
+    for (z = lo; z < hi; z += 0.05) sh.push(X(z).toFixed(1) + ',' + Y(z).toFixed(1));
+    sh.push(X(hi).toFixed(1) + ',' + Y(hi).toFixed(1), X(hi).toFixed(1) + ',150');
+    s += '<polygon class="shade" points="' + sh.join(' ') + '"/>';
+    s += '<polyline class="line" points="' + pts.join(' ') + '"/>';
+    s += '<line class="axis" x1="0" y1="150" x2="700" y2="150"/>';
+    for (i = -3; i <= 3; i++){
+      s += '<line class="tick" x1="' + X(i) + '" y1="150" x2="' + X(i) + '" y2="157"/>';
+      s += '<text class="' + (i === 0 ? 'mlabel' : 'tlabel') + '" x="' + X(i) + '" y="176">' + num(q.mu + i * q.sd) + '</text>';
+    }
+    q.zs.forEach(function(zi, j){
+      var x = X(zi.z).toFixed(1), anchor = 'middle';
+      if (q.kind === 'between') anchor = j === 0 ? 'end' : 'start';
+      var lx = anchor === 'end' ? +x - 5 : anchor === 'start' ? +x + 5 : +x;
+      s += '<line class="bline" x1="' + x + '" y1="150" x2="' + x + '" y2="28"/>';
+      s += '<text class="blabel" x="' + lx + '" y="20" text-anchor="' + anchor + '">' + num(zi.x) + '</text>';
+    });
+    if (done){
+      var cx = Math.max(70, Math.min(630, (X(lo) + X(hi)) / 2));
+      s += '<text class="plabel" x="' + cx + '" y="60">' + fmt(q.expected) + '</text>';
+    }
+    $('curve').innerHTML = s;
+  }
+
+  /* ---------- questions ---------- */
+  function showFb(kind, title, html){
+    fb.className = 'fb ' + kind;
+    fb.innerHTML = '<strong>' + title + '</strong> ' + html;
+  }
+  function updateScore(){
+    $('score').innerHTML = n === 0 ? 'No questions finished yet'
+      : 'First try <b>' + first + ' of ' + n + '</b> &middot; Streak <b>' + streak + '</b>';
+  }
+  function zText(zi){ return (zi.z < 0 ? MINUS : '') + Math.abs(zi.z).toFixed(level === 'tenths' ? 1 : 2); }
+  function mkZ(zt, mu, sd){
+    var div = level === 'tenths' ? 10 : 100, k = Math.abs(zt) * (level === 'tenths' ? 10 : 1);
+    return {zt: zt, z: zt / div, x: r2(mu + zt * sd / div), sign: zt < 0 ? -1 : 1, k: k, r: Math.floor(k / 10), c: k % 10};
+  }
+  function randZt(){
+    var div = level === 'tenths' ? 10 : 100, v;
+    do { v = Math.round((rnd(-3 * div, 3 * div) + rnd(-3 * div, 3 * div)) / 2); } while (v === 0);
+    return v;
+  }
+  function nextKind(){
+    if (kindMode !== 'mixed') return kindMode;
+    if (!bag.length){
+      bag = ['left', 'right', 'between'];
+      for (var i = bag.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)), t = bag[i]; bag[i] = bag[j]; bag[j] = t; }
+    }
+    return bag.pop();
+  }
+  function lookup(zi){
+    return 'z = (' + num(zi.x) + ' ' + MINUS + ' ' + num(q.mu) + ') / ' + num(q.sd) + ' = <span class="num">' + zText(zi) + '</span>';
+  }
+  function where(zi){
+    return (zi.sign < 0 ? 'negative' : 'positive') + ' table, row <span class="num">' + rowLabel(zi.sign, zi.r) + '</span>, column <span class="num">.0' + zi.c + '</span>';
+  }
+  function buildHints(){
+    var f = 'z = (x ' + MINUS + ' μ) / σ', hs = [], zs = q.zs;
+    if (q.kind === 'between'){
+      hs.push({t: 'Convert both values to z-scores with <span class="num">' + f + '</span>. The table gives the area to the left of each z.'});
+      hs.push({t: lookup(zs[0]) + ': ' + where(zs[0]) + '.<br>' + lookup(zs[1]) + ': ' + where(zs[1]) + '.', marks: zs});
+      hs.push({t: 'Each table entry is the area to the left. Subtract the smaller entry from the larger one.'});
+    } else {
+      hs.push({t: 'Convert the value to a z-score with <span class="num">' + f + '</span>. The table gives the area to the left of z.'});
+      hs.push({t: lookup(zs[0]) + ': ' + where(zs[0]) + '.', marks: zs});
+      if (q.kind === 'right') hs.push({t: 'The table entry is the area to the left. You want the area to the right, so subtract the entry from 1.'});
+    }
+    q.hints = hs;
+  }
+  function newQuestion(){
+    var kind = nextKind(), c, mu, sd, zts, key, pool;
+    do {
+      c = pick(CTX);
+      pool = level === 'tenths' ? c.sd : c.sd.filter(function(v){ return v === Math.floor(v); });
+      if (!pool.length) continue;
+      mu = rnd(c.mu[0], c.mu[1]); sd = pick(pool);
+      if (kind === 'between'){
+        var a = randZt(), b;
+        do { b = randZt(); } while (Math.abs(b - a) < (level === 'tenths' ? 3 : 30));
+        zts = [Math.min(a, b), Math.max(a, b)];
+      } else zts = [randZt()];
+      key = c.intro + mu + sd + kind + zts.join(',');
+    } while (!pool.length || (q && q.key === key));
+    var zs = zts.map(function(zt){ return mkZ(zt, mu, sd); });
+    var ps = zs.map(function(zi){ return entry(zi.sign, zi.r, zi.c); });
+    var expected = kind === 'left' ? ps[0] : kind === 'right' ? r4(1 - ps[0]) : r4(ps[1] - ps[0]);
+    q = {kind: kind, c: c, mu: mu, sd: sd, zs: zs, ps: ps, expected: expected, key: key, clean: true};
+    buildHints();
+    qnum++;
+    status = 'open'; attempts = 0; hintLevel = 0; marks = []; ansMark = false; pin = null;
+    $('qnum').textContent = qnum;
+    $('tag').textContent = kind === 'left' ? 'Area to the left' : kind === 'right' ? 'Area to the right' : 'Area between';
+    $('story').innerHTML = esc(c.intro) + ' ' + c.be + ' normally distributed with a mean of <b>' + num(mu) + ' ' + esc(c.unit) + '</b> and a standard deviation of <b>' + num(sd) + ' ' + esc(c.unit) + '</b>.';
+    var u = ' ' + esc(c.unit), w;
+    if (kind === 'left') w = 'are ' + pick(['below', 'less than', 'at most']) + ' <b>' + num(zs[0].x) + u + '</b>';
+    else if (kind === 'right') w = 'are ' + pick(['above', 'greater than', 'at least']) + ' <b>' + num(zs[0].x) + u + '</b>';
+    else w = 'are between <b>' + num(zs[0].x) + '</b> and <b>' + num(zs[1].x) + u + '</b>';
+    $('ask').innerHTML = 'What proportion of ' + esc(c.what) + ' ' + w + '?';
+    input.value = ''; input.readOnly = false;
+    primary.textContent = 'Check answer';
+    hintBtn.disabled = false; revealBtn.disabled = false;
+    showFb('', 'Your turn.', 'Find the z-score, look it up in the table, and type the proportion with four decimal places.');
+    drawCurve(false);
+    paint();
+  }
+  function parse(s){
+    s = s.replace(/[\s,]/g, '');
+    var pct = /%$/.test(s);
+    s = s.replace('%', '');
+    if (!/^(\d+\.?\d*|\.\d+)$/.test(s)) return NaN;
+    var v = parseFloat(s);
+    return pct ? v / 100 : v;
+  }
+  function finish(){
+    status = 'done';
+    n++;
+    if (q.clean){ first++; streak++; } else streak = 0;
+    updateScore();
+    input.readOnly = true;
+    hintBtn.disabled = true; revealBtn.disabled = true;
+    primary.textContent = 'Next question';
+    drawCurve(true);
+    primary.focus();
+  }
+  function reveal(){
+    marks = q.zs;
+    ansMark = true;
+    setView(q.zs[0].sign);
+    marks = q.zs;
+    paint();
+    scrollToMark(q.zs[0]);
+  }
+  function solution(){
+    var p = q.ps;
+    if (q.kind === 'left') return 'Table entry <span class="num">' + fmt(p[0]) + '</span>.';
+    if (q.kind === 'right') return '<span class="num">1 ' + MINUS + ' ' + fmt(p[0]) + ' = ' + fmt(q.expected) + '</span>.';
+    return '<span class="num">' + fmt(p[1]) + ' ' + MINUS + ' ' + fmt(p[0]) + ' = ' + fmt(q.expected) + '</span>.';
+  }
+  function check(){
+    var v = parse(input.value);
+    if (isNaN(v)){
+      showFb('info', 'Enter a number.', 'Type the proportion, like <span class="num">.2266</span>.');
+      return;
+    }
+    attempts++;
+    function near(x){ return Math.abs(v - x) < TOL; }
+    if (near(q.expected)){
+      var zt = q.zs.map(function(zi){ return 'z = ' + zText(zi); }).join(' and ');
+      showFb('good', 'Correct.', zt + '. ' + solution() + ' About ' + (q.expected * 100).toFixed(2) + '% of the data.');
+      reveal(); finish();
+      return;
+    }
+    q.clean = false;
+    var p = q.ps, msg;
+    if (q.kind === 'left'){
+      if (near(r4(1 - p[0]))) msg = 'That is the area to the right of the value. The question asks for the left. Also check that you used the table that matches the sign of z.';
+    } else if (q.kind === 'right'){
+      if (near(p[0])) msg = 'That is the table entry, the area to the left. For the right side, subtract it from 1.';
+    } else {
+      if (near(p[1])) msg = 'That is the area to the left of the larger value only. Subtract the area to the left of the smaller value.';
+      else if (near(p[0])) msg = 'That is the area to the left of the smaller value only. Find the larger value’s entry and subtract.';
+      else if (near(r4(1 - q.expected))) msg = 'That is the area outside the two values. The question asks for the area between them.';
+    }
+    if (!msg){
+      msg = 'Check your z-score first, then the sign of z so you read the right table.';
+    }
+    if (attempts >= 2 && hintLevel < q.hints.length) msg += ' Try the hint.';
+    showFb('bad', 'Not yet.', msg);
+    input.select();
+  }
+  function hint(){
+    if (status === 'done') return;
+    q.clean = false;
+    hintLevel = Math.min(q.hints.length, hintLevel + 1);
+    var h = q.hints[hintLevel - 1];
+    showFb('info', 'Hint ' + hintLevel + '.', h.t);
+    if (h.marks){
+      marks = h.marks;
+      setView(h.marks[0].sign);
+      marks = h.marks;
+      paint();
+      scrollToMark(h.marks[0]);
+    }
+    if (hintLevel >= q.hints.length) hintBtn.disabled = true;
+  }
+
+  $('ansform').addEventListener('submit', function(e){
+    e.preventDefault();
+    if (status === 'done'){ newQuestion(); input.focus(); } else check();
+  });
+  hintBtn.addEventListener('click', hint);
+  revealBtn.addEventListener('click', function(){
+    if (status === 'done') return;
+    q.clean = false;
+    reveal();
+    var zt = q.zs.map(function(zi){ return 'z = ' + zText(zi); }).join(' and ');
+    showFb('info', 'Answer.', zt + '. ' + solution());
+    finish();
+  });
+  $('reset').addEventListener('click', function(){ n = 0; first = 0; streak = 0; updateScore(); });
+  document.querySelectorAll('[data-kind]').forEach(function(b){
+    b.addEventListener('click', function(){
+      if (b.dataset.kind === kindMode) return;
+      kindMode = b.dataset.kind; bag = [];
+      document.querySelectorAll('[data-kind]').forEach(function(o){ o.setAttribute('aria-pressed', o === b ? 'true' : 'false'); });
+      newQuestion();
+    });
+  });
+  document.querySelectorAll('[data-level]').forEach(function(b){
+    b.addEventListener('click', function(){
+      if (b.dataset.level === level) return;
+      level = b.dataset.level;
+      document.querySelectorAll('[data-level]').forEach(function(o){ o.setAttribute('aria-pressed', o === b ? 'true' : 'false'); });
+      newQuestion();
+    });
+  });
+
+  setView(-1);
+  newQuestion();
+  updateScore();
+})();
+</script>
+
+</body>
+</html>
